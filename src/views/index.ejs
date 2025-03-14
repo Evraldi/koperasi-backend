@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dalam Pengembangan</title>
+    <link rel="stylesheet" href="style.css?v=<%= Date.now() %>">
+</head>
+<body>
+    <header>
+        <h1>DALAM PENGEMBANGAN</h1>
+    </header>
+    <main>
+        <form id="registerForm">
+            <label for="name">Nama:</label>
+            <input type="text" id="name" name="name" required>
+        
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        
+            <button type="submit">Daftar</button>
+        </form>
+        
+        <h2>Data Semua Pengguna</h2>
+        <button id="fetchAllUsersBtn">Ambil Semua User</button>
+        
+        <div id="allUsers">
+            <ul id="userList"></ul>
+        </div>
+
+        <script>
+        document.getElementById('fetchAllUsersBtn').addEventListener('click', fetchAllUsers);
+
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!name || !email || !password) {
+                alert("Semua field harus diisi!");
+                return;
+            }
+
+            try {
+                const response = await fetch('https://koperasihegar.my.id/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const result = await response.json();
+                console.log('Response dari server:', result);
+
+                alert(JSON.stringify(result));
+
+                if (response.ok) {
+                    document.getElementById('registerForm').reset();
+                    fetchAllUsers();
+                }
+            } catch (error) {
+                console.error('Error: dimatiin evraldi dbnya', error);
+                alert('Gagal mendaftarkan user. (dimatiin evraldi DB nya)');
+            }
+        });
+
+        async function fetchAllUsers() {
+            try {
+                const response = await fetch('https://koperasihegar.my.id/api/users/all', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const users = await response.json();
+                console.log('All Users:', users);
+
+                const userListElement = document.getElementById('userList');
+                userListElement.innerHTML = '';
+
+                if (response.ok) {
+                    users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.setAttribute('data-id', user.id);
+                        li.innerHTML = `
+                            <strong>Nama:</strong> <span id="name-${user.id}">${user.name}</span> |
+                            <strong>Email:</strong> <span id="email-${user.id}">${user.email}</span>
+                            <button class="update-btn" data-id="${user.id}">✏️ Update</button>
+                            <button class="delete-btn" data-id="${user.id}">❌ Hapus</button>
+                        `;
+                        userListElement.appendChild(li);
+                    });
+                } else {
+                    userListElement.innerHTML = `<p>Gagal mengambil data user (dimatiin evraldi DB nya).</p>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('userList').innerHTML = `<p>Gagal mengambil data user, server dimatiin evraldi.</p>`;
+            }
+        }
+
+        document.getElementById('userList').addEventListener('click', async function(event) {
+            const userId = event.target.getAttribute('data-id');
+
+            if (event.target.classList.contains('delete-btn')) {
+                console.log("Menghapus user dengan ID:", userId);
+                if (!confirm('Yakin ingin menghapus user ini?')) return;
+
+                try {
+                    const response = await fetch(`https://koperasihegar.my.id/api/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+                    console.log('Response dari server:', result);
+
+                    alert(result.message);
+                    if (response.ok) fetchAllUsers();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Gagal menghapus user. (dimatiin evraldi DB nya)');
+                }
+            }
+
+            if (event.target.classList.contains('update-btn')) {
+                console.log("Update user dengan ID:", userId);
+
+                const oldName = document.getElementById(`name-${userId}`).innerText;
+                const oldEmail = document.getElementById(`email-${userId}`).innerText;
+
+                const newName = prompt("Masukkan nama baru:", oldName);
+                const newEmail = prompt("Masukkan email baru:", oldEmail);
+                
+                if (!newName || !newEmail) return alert("Update dibatalkan!");
+
+                try {
+                    const response = await fetch(`https://koperasihegar.my.id/api/users/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName, email: newEmail })
+                    });
+
+                    const result = await response.json();
+                    console.log('Response dari server:', result);
+
+                    alert(result.message);
+                    if (response.ok) fetchAllUsers();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Gagal memperbarui user. (dimatiin evraldi DB nya)');
+                }
+            }
+        });
+        </script>        
+    </main>
+</body>
+</html>
